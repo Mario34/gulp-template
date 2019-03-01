@@ -4,7 +4,7 @@ const imageMin = require('gulp-imagemin');
 const uglify = require('gulp-uglify');
 const cssUglify = require('gulp-minify-css');
 const htmlMin = require('gulp-htmlmin');
-// const babel = require('gulp-babel');
+const babel = require('gulp-babel');
 const {
     series,
     parallel,
@@ -30,6 +30,9 @@ function minImg(cb) {
 //压缩js
 function minJs(cb) {
     return src('src/js/**/*.js')
+        .pipe(babel({
+            presets: ['@babel/preset-env']
+        }))
         .pipe(uglify())
         .pipe(dest('dist/js'))
 };
@@ -44,7 +47,9 @@ function minCss(cb) {
 //copyHtml&minHtml
 function copyHtml() {
     return src('src/*.html')
-        .pipe(htmlMin())
+        .pipe(htmlMin({
+            collapseWhitespace: true
+        }))
         .pipe(dest('dist'))
 }
 
@@ -66,7 +71,6 @@ function proServer() {
 //开发模式
 function dev(cb) {
     browserSync.init({
-        // server: "./src"
         server: {
             baseDir: "./src",
         }
@@ -76,10 +80,11 @@ function dev(cb) {
     watch("./src/js/**/*.js").on('change', browserSync.reload);
 };
 
-const buildDist = parallel(minImg, minJs, minCss, copyHtml, copyAssect);
-const build = series(buildDist, proServer);
+const build = series(parallel(minImg, minJs, minCss, copyHtml, copyAssect));
+const product = series(build, proServer);
 
-exports.dev = dev;
-exports.default = dev;
-exports.build = buildDist;
-exports.product = build;
+module.exports = {
+    dev, //开发模式
+    build, //打包代码到dist
+    product, //产品代码dist服务器
+}
